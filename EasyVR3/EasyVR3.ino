@@ -3,6 +3,8 @@
   #error "Arduino version not supported. Please update your IDE to the latest version."
 #endif
 
+//http://arduino.esp8266.com/stable/package_esp8266com_index.json
+
 #if defined(__SAMD21G18A__)
   // Shield Jumper on HW (for Zero, use Programming Port)
   #define port SERIAL_PORT_HARDWARE

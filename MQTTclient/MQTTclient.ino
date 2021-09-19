@@ -12,8 +12,8 @@
 #define OPEN_PIN 2  //D4
 #define CLOSE_PIN 14  //D5
 */
-const char *wifi_ssid = "dlink_DWR-932_acordados";//"papamapa-trabalho";//"MEO-9AB8F0";
-const char *wifi_password = "RMovel456#";//"pedro+miguel+clara+antonio";//"6390a3fe34";
+const char *wifi_ssid = "Acor1";//"papamapa-trabalho";//"MEO-9AB8F0";
+const char *wifi_password = "1234567890";//"pedro+miguel+clara+antonio";//"6390a3fe34";
 const char* mqtt_server = "broker.hivemq.com";//"broker.mqtt-dashboard.com";
 //const char* cloud_username = "voice_module";
 //const char* cloud_password = "jdSi72J29da";
