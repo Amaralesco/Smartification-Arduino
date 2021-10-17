@@ -2,19 +2,16 @@
 #include <BridgeClient.h>
 #include <PubSubClient.h>
 #include <Ultrasonic.h>
+/////////////ACTUATOR///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+#include <Servo.h>
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 #define DOOR 4
+#define ACTUATOR_PIN 9
+
 const char* mqtt_server = "broker.hivemq.com";//"broker.mqtt-dashboard.com";
 const char* topicStatus = "jdSi72J29da/automatic_cabinet_door/status";
 const char* topicSub = "jdSi72J29da/automatic_cabinet_door/controls";
-
-
-//igual porque mais tarde pode-se querer mudar o nome do topico para message
-const char* topicPub = "jdSi72J29da/automatic_cabinet_door/controls";
-
-
-
-
 
 BridgeClient yunClient;
 PubSubClient client(yunClient);
@@ -27,11 +24,35 @@ const int openZone = 130;//130 cm
 int mode = 1; //1-AUTOMATIC_MODE; 2-MANUAL_MODE; 3-OPEN_MODE;
 int lastMode = 1;
 bool canOpen = false;
-
-  int id = 18;
-  char data[255];
+/////////////ACTUATOR///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+Servo myActuator;
+int actuatorPos;
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 unsigned long lastMsg = 0;
+
+
+/////////////ACTUATOR///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+void actuatorOpen(){
+  for(actuatorPos = 0; actuatorPos <= 360; actuatorPos+=1){
+    myActuator.write(actuatorPos);
+    delay(30); //15 ms to reach position
+  }
+}
+
+void actuatorClose(){
+  for(actuatorPos = 360; actuatorPos >= 0; actuatorPos-=1){
+    myActuator.write(actuatorPos);
+    delay(30); //15 ms to reach position
+  }
+}
+  /*for(actuatorPos = 180; actuatorPos >= 0; actuatorPos-=1){
+    myActuator.write(actuatorPos);
+    delay(30); //15 ms to reach position
+  }*/
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 
 void callbackMQTT(char* topic, byte* payload, unsigned int length) {
   char payloadChar[length+1];
@@ -39,7 +60,6 @@ void callbackMQTT(char* topic, byte* payload, unsigned int length) {
   Serial.print(topic);
   Serial.print("] ");
   int i=0;
-  
   for (; i < length; i++) {
     payloadChar[i] = (char)payload[i]; 
     Serial.print(payloadChar[i]);
@@ -59,18 +79,21 @@ void callbackMQTT(char* topic, byte* payload, unsigned int length) {
     lastMode = mode;
     mode = 3;
     digitalWrite(DOOR, HIGH);
+    actuatorOpen();
   } else if(strcmp(payloadChar, "OPEN")==0 && mode==2 && canOpen){
     digitalWrite(DOOR, HIGH);
+    actuatorOpen();
   } else if(strcmp(payloadChar, "CLOSE")==0 && mode==3){
     digitalWrite(DOOR, LOW);
+    Serial.println("closing");
+    actuatorClose();
+    Serial.println("Closed-----");
     mode = lastMode;
   }
   canOpen = false;
   digitalWrite(LED_BUILTIN, HIGH);
   delay(200);
   digitalWrite(LED_BUILTIN, LOW);
-
-
 
 }
 
@@ -103,6 +126,10 @@ void setup() {    // Initialize the BUILTIN_LED pin as an output
   // it can be helpful to use the on-board LED
   // as an indicator for when it has initialized
 
+/////////////ACTUATOR///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+  myActuator.attach(ACTUATOR_PIN);
+  actuatorClose();
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
   pinMode(DOOR, OUTPUT);
   
   pinMode(LED_BUILTIN, OUTPUT);
@@ -116,7 +143,6 @@ void setup() {    // Initialize the BUILTIN_LED pin as an output
   Serial.begin(9600);
   client.setServer(mqtt_server, 1883);
   client.setCallback(callbackMQTT);
-
 }
 
 void loop() {
@@ -137,12 +163,14 @@ void loop() {
         zoneTime = 0;
       if(zoneTime >= 4000){
         Serial.println("Close");
-        client.publish("jdSi72J29da/automatic_cabinet_door/controls", "Close");
         doorOpen = false;
         zoneTime = 0;
         if(mode == 2)
           canOpen = false;
         digitalWrite(4,LOW);
+/////////////ACTUATOR///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        actuatorClose();
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
       }
     }
     else{
@@ -152,19 +180,16 @@ void loop() {
         zoneTime = 0;
       if(zoneTime >= 1000){
         Serial.println("Open");
-
-        String str_distance = String(distance);
-        String str_id = String(id);
-        String str_JSON = String("{\"measurement_log_id\":" + str_id + ",\"project_id\":1,\"activity\":\"Open\",\"running_version\": 1,\"sensor\":\"Distance\",\"value\":"+ str_distance + ",\"time_stamp\":\"1999-01-20 21:22:23 +0000\"}");
-        str_JSON.toCharArray(data,(str_JSON.length() + 1));
-        Serial.println(str_JSON.length());
-        client.publish("jdSi72J29da/automatic_cabinet_door/measurement", data);
         doorOpen = true;
         zoneTime = 0;
         if(mode == 2)
           canOpen = true;
-        else
+        else{
           digitalWrite(4,HIGH);
+/////////////ACTUATOR///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+          actuatorOpen();
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+        }
       }
     }
   }
