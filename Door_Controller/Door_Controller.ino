@@ -2,8 +2,11 @@
 #include <BridgeClient.h>
 #include <PubSubClient.h>
 #include <Ultrasonic.h>
+#include <Servo.h>
 
 #define DOOR 4
+#define ACTUATOR_PIN 9
+
 const char* mqtt_server = "broker.hivemq.com";//"broker.mqtt-dashboard.com";
 const char* topicStatus = "jdSi72J29da/automatic_cabinet_door/status";
 const char* topicSub = "jdSi72J29da/automatic_cabinet_door/controls";
@@ -28,10 +31,38 @@ int mode = 1; //1-AUTOMATIC_MODE; 2-MANUAL_MODE; 3-OPEN_MODE;
 int lastMode = 1;
 bool canOpen = false;
 
+//Monitor
   int id = 18;
   char data[255];
 
-unsigned long lastMsg = 0;
+  unsigned long lastMsg = 0;
+
+
+/////////////ACTUATOR///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+Servo myActuator;
+int actuatorPos;
+
+void actuatorOpen(){
+  for(actuatorPos = 0; actuatorPos <= 360; actuatorPos+=1){
+    myActuator.write(actuatorPos);
+    delay(30); //15 ms to reach position
+  }
+}
+
+void actuatorClose(){
+  for(actuatorPos = 360; actuatorPos >= 0; actuatorPos-=1){
+    myActuator.write(actuatorPos);
+    delay(30); //15 ms to reach position
+  }
+}
+  /*for(actuatorPos = 180; actuatorPos >= 0; actuatorPos-=1){
+    myActuator.write(actuatorPos);
+    delay(30); //15 ms to reach position
+  }*/
+
+  ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+
 
 void callbackMQTT(char* topic, byte* payload, unsigned int length) {
   char payloadChar[length+1];
@@ -117,6 +148,10 @@ void setup() {    // Initialize the BUILTIN_LED pin as an output
   client.setServer(mqtt_server, 1883);
   client.setCallback(callbackMQTT);
 
+//Actuator
+  myActuator.attach(ACTUATOR_PIN);
+  actuatorClose();
+
 }
 
 void loop() {
@@ -143,6 +178,8 @@ void loop() {
         if(mode == 2)
           canOpen = false;
         digitalWrite(4,LOW);
+        actuatorClose();
+        
       }
     }
     else{
@@ -165,6 +202,7 @@ void loop() {
           canOpen = true;
         else
           digitalWrite(4,HIGH);
+          actuatorOpen();
       }
     }
   }
